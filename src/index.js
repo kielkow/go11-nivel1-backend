@@ -1,51 +1,84 @@
 const express = require('express');
+const { uuid } = require('uuidv4');
 
 const app = express();
 
 app.use(express.json());
 
+const projects = [];
+
 app.get('/projects', (request, response) => {
   const { title, owner } = request.query;
 
-  console.log(title);
-  console.log(owner);
+  if(title || owner){
+    // if owner does not exists
+    if(!owner) {
+      const filterProjects = projects.filter(project => {
+        return project.title.includes(title);
+      });
+    
+      return response.json(filterProjects);
+    }
 
-  return response.json([
-    'Projeto1',
-    'Projeto2',
-  ]);
+    // if title does not exists
+    if(!title) {
+      const filterProjects = projects.filter(project => {
+        return project.owner.includes(owner);
+      });
+    
+      return response.json(filterProjects);
+    }
+
+    // if owner and title exists
+    const filterProjects = projects.filter(project => {
+      return project.owner.includes(owner) && project.title.includes(title);
+    });
+  
+    return response.json(filterProjects);
+  }
+
+  return response.json(projects);
 });
 
 app.post('/projects', (request, response) => {
   const { title, owner } = request.body;
 
-  console.log(title);
-  console.log(owner);
+  const project = { id: uuid(), title, owner };
 
-  return response.json([
-    'Projeto1',
-    'Projeto2',
-    'Projeto3',
-  ]);
+  projects.push(project);
+
+  return response.json(project);
 });
 
 app.put('/projects/:id', (request, response) => {
   const { id } = request.params;
+  const { title, owner } = request.body;
 
-  console.log(id);
+  let projectIndex = projects.findIndex(project => project.id === id);
 
-  return response.json([
-    'Projeto4',
-    'Projeto2',
-    'Projeto3',
-  ]);
+  if(projectIndex < 0) {
+    return response.status(400).json({ error: 'Project not found '});
+  }
+
+  const project = { id, title, owner };
+ 
+  projects[projectIndex] = project;
+
+  return response.json(project);
 });
 
 app.delete('/projects/:id', (request, response) => {
-  return response.json([
-    'Projeto4',
-    'Projeto3',
-  ]);
+  const { id } = request.params;
+
+  let projectIndex = projects.findIndex(project => project.id === id);
+
+  if(projectIndex < 0) {
+    return response.status(400).json({ error: 'Project not found '});
+  }
+
+  projects.splice(projectIndex, 1);
+
+  return response.status(204);
 });
 
 app.listen(3333, () => {
