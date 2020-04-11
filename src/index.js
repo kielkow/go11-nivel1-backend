@@ -1,9 +1,33 @@
 const express = require('express');
-const { uuid } = require('uuidv4');
+const { uuid, isUuid } = require('uuidv4');
 
 const app = express();
 
 app.use(express.json());
+
+function logRequests(request, response, next) {
+  const { method, url } = request;
+
+  const logLabel = `[${method.toUpperCase()}] ${url}`;
+
+  // get request time
+  console.time(logLabel);
+
+  next();
+
+  console.timeEnd(logLabel);
+}
+
+function validateProjectId(request, response, next) {
+  const { id } = request.params;
+
+  if(!isUuid(id)) return response.status(400).json({ error: 'ID not valid' });
+
+  return next();
+}
+
+app.use(logRequests);
+app.use('/projects/:id', validateProjectId);
 
 const projects = [];
 
@@ -78,7 +102,7 @@ app.delete('/projects/:id', (request, response) => {
 
   projects.splice(projectIndex, 1);
 
-  return response.status(204);
+  return response.status(204).json({ message: 'Project deleted' });
 });
 
 app.listen(3333, () => {
